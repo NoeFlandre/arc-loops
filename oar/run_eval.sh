@@ -23,7 +23,7 @@ cp -r "$ROOT/hf-cache/." "$SHM/"
 export HF_HOME="$SHM" HF_HUB_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_PROGRESS_BARS=1
 export TOKENIZERS_PARALLELISM=false OMP_NUM_THREADS="$(nproc)"
 LOG="$ROOT/results/logs/${PRESET}-${OAR_JOB_ID}.log"
-"$LOCAL/venv/bin/python" -u "$ROOT/loop_eval.py" --preset "$PRESET" --shard "$SHARD" --batch-size "${BATCH:-8}" >"$LOG" 2>"${LOG%.log}.err"
+"$LOCAL/venv/bin/python" -u "$ROOT/loop_eval.py" --preset "$PRESET" --shard "$SHARD" --loop-mode "${LOOP_MODE:-layer}" --batch-size "${BATCH:-8}" >"$LOG" 2>"${LOG%.log}.err"
 if [ "$SHARD" = "0/1" ]; then
   "$LOCAL/venv/bin/python" "$ROOT/collect.py" "$LOG" --preset "$PRESET" --job "$OAR_JOB_ID" --out-dir "$ROOT/results"
 fi

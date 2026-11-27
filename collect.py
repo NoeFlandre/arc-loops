@@ -59,7 +59,7 @@ def collect(texts, preset, script_hash):
 
     base = configs[0]
     for cfg in configs[1:]:
-        for key in ("task_sizes", "model_revision", "dataset_revisions", "layers", "arm_betas", "challenge_pilot_indices"):
+        for key in ("task_sizes", "model_revision", "dataset_revisions", "layers", "arm_betas", "challenge_pilot_indices", "loop_mode"):
             if cfg.get(key) != base.get(key):
                 raise ValueError(f"Shard configs disagree on {key}")
     sizes = base["task_sizes"]

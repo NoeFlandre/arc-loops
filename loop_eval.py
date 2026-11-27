@@ -73,12 +73,26 @@ def two_steps(forward, beta):
 
 
 @contextmanager
-def loop_middle(model, beta):
+def loop_middle(model, beta, mode="layer"):
     layers = [model.model.layers[index] for index in LAYERS]
     original_forwards = [layer.forward for layer in layers]
     try:
-        for layer, forward in zip(layers, original_forwards, strict=True):
-            layer.forward = two_steps(forward, beta)
+        if mode == "layer":
+            for layer, forward in zip(layers, original_forwards, strict=True):
+                layer.forward = two_steps(forward, beta)
+        elif mode == "block":
+            def block_forward(hidden_states, **kwargs):
+                if kwargs.get("past_key_values") is not None:
+                    raise ValueError("Layer looping requires a cache-free forward.")
+                for forward in original_forwards:
+                    hidden_states = forward(hidden_states, **kwargs)
+                return hidden_states
+
+            layers[0].forward = two_steps(block_forward, beta)
+            for layer in layers[1:]:
+                layer.forward = lambda hidden_states, **kwargs: hidden_states
+        else:
+            raise ValueError(f"Unknown loop mode: {mode}")
         yield
     finally:
         for layer, forward in zip(layers, original_forwards, strict=True):
@@ -86,14 +100,14 @@ def loop_middle(model, beta):
 
 
 @torch.inference_mode()
-def check_loop(model, tokenizer):
+def check_loop(model, tokenizer, mode):
     prompt = tokenizer("The capital of France is", return_tensors="pt").to(model.device)
 
     def logits():
         return model(**prompt, use_cache=False, logits_to_keep=1).logits
 
     baseline = logits()
-    with loop_middle(model, beta=0.5):
+    with loop_middle(model, beta=0.5, mode=mode):
         looped = logits()
     if not torch.isfinite(looped).all() or torch.equal(looped, baseline):
         raise RuntimeError("Loop check expected finite and changed logits.")
@@ -101,11 +115,11 @@ def check_loop(model, tokenizer):
         raise RuntimeError("Restoring the layer forwards changed baseline logits.")
 
 
-def evaluate_arm(model, tokenizer, task, manager, indices, beta, batch_size):
+def evaluate_arm(model, tokenizer, task, manager, indices, beta, batch_size, mode):
     task_name = task.config.task
     evaluator_model = HFLM(pretrained=model, tokenizer=tokenizer, batch_size=batch_size)
     start = time.perf_counter()
-    with nullcontext() if beta is None else loop_middle(model, beta):
+    with nullcontext() if beta is None else loop_middle(model, beta, mode):
         result = simple_evaluate(
             model=evaluator_model,
             tasks=[task],
@@ -148,14 +162,14 @@ def paired_stats(before, after):
     }
 
 
-def score_task(model, tokenizer, task, manager, indices, batch_size):
+def score_task(model, tokenizer, task, manager, indices, batch_size, mode):
     task_name = task.config.task
     rows_by_arm = {}
     times = {}
     for arm, beta in ARMS.items():
         emit("START_ARM", {"task": task_name, "arm": arm})
         rows_by_arm[arm], times[arm] = evaluate_arm(
-            model, tokenizer, task, manager, indices, beta, batch_size
+            model, tokenizer, task, manager, indices, beta, batch_size, mode
         )
         emit("ARM_RESULT", {"task": task_name, "arm": arm, "seconds": times[arm]})
 
@@ -199,6 +213,7 @@ def main():
     parser.add_argument("--seed", type=int, default=PILOT_SEED, help="Sampling seed for the smoke preset.")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--shard", default="0/1", help="k/N: score only the k-th of N contiguous shards of each test set.")
+    parser.add_argument("--loop-mode", choices=("layer", "block"), default="layer", help="layer: loop each layer; block: loop layers 12-15 as one function.")
     args = parser.parse_args()
     shard_k, shard_n = (int(part) for part in args.shard.split("/"))
     if not 0 <= shard_k < shard_n:
@@ -231,6 +246,7 @@ def main():
         "dataset_revisions": DATASET_REVISIONS,
         "preset": args.preset,
         "shard": [shard_k, shard_n],
+        "loop_mode": args.loop_mode,
         "task_sizes": {name: len(items) for name, items in indices.items()},
         "split": "test",
         "fewshot": 0,
@@ -250,14 +266,14 @@ def main():
         MODEL, revision=MODEL_REVISION, dtype=dtype, attn_implementation="sdpa"
     ).to(device).eval().requires_grad_(False)
     model.config.use_cache = False
-    check_loop(model, tokenizer)
+    check_loop(model, tokenizer, args.loop_mode)
     emit("LOOP_CHECK", {"finite_changed_logits": True, "restored_logits_equal": True})
 
     summaries = {}
     pilot = set(pilot_indices)
     for name, task in tasks.items():
         run_indices = shard_of(indices[name], shard_k, shard_n)
-        rows, times = score_task(model, tokenizer, task, manager, run_indices, args.batch_size)
+        rows, times = score_task(model, tokenizer, task, manager, run_indices, args.batch_size, args.loop_mode)
         summaries[name] = summarize(rows, times)
         emit("TASK_RESULT", {"task": name, **summaries[name]})
         if full and name == CHALLENGE:
