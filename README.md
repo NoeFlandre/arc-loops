@@ -6,11 +6,17 @@ Looping a few middle layers of a small language model (Qwen3-0.6B-Base), tested 
 
 ## Idea
 
-Four middle layers are run twice with a damped update. No training. This adds 4 layer calls per forward pass (28 → 32). Two modes: `layer` (each layer looped) and `block` (the four layers looped as one unit).
+Four middle layers are run twice with a damped update. No training. This adds 4 layer calls per forward pass (28 → 32).
+
+Two modes:
+- **Layer:** each layer is looped on its own.
+- **Block:** layers 12–15 are looped together as one unit.
 
 ## Results
 
-Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus baseline, with 95% interval.
+Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus baseline, with 95% interval. One H100, bf16.
+
+### Layer mode
 
 | Benchmark (questions) | Baseline | Damped Euler | Heavy-ball | Damped − baseline |
 |---|---|---|---|---|
@@ -23,7 +29,7 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 
 ![Accuracy by arm](figures/accuracy.svg)
 
-**Block mode** (layers 12–15 run as one unit):
+### Block mode
 
 | Benchmark (questions) | Baseline | Damped Euler | Heavy-ball | Damped − baseline |
 |---|---|---|---|---|
@@ -32,10 +38,13 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 | PIQA, validation (1,838) | 69.8 | 69.6 | 69.6 | −0.2 [−0.9, +0.4] |
 | HellaSwag, validation (10,042) | 53.8 | 53.1 | 53.7 | −0.7 [−1.0, −0.4] |
 
-Layer mode, run on one H100 (bf16). Details: [RESULTS.md](RESULTS.md). Raw data: [HF bucket](https://huggingface.co/buckets/NoeFlandre/arc-loops).
+### Takeaways
 
-- ARC-Easy gain reproduces.
-- PIQA and HellaSwag show no clear change.
+- Layer mode: the ARC-Easy gain reproduces (+3.3 points).
+- Block mode: the ARC-Easy gain is smaller (+3.1), and HellaSwag drops slightly (−0.7).
+- No other clear gains in either mode.
+
+Details: [RESULTS.md](RESULTS.md). Raw data: [HF bucket](https://huggingface.co/buckets/NoeFlandre/arc-loops).
 
 ## Run it
 
@@ -45,14 +54,18 @@ On Grid'5000 (OAR, queue `abaca`):
 # once per site, CPU
 oarsub -q abaca -p gpu_count=0 "bash oar/env_build.sh"
 
-# full run, one GPU
+# layer mode, one GPU
 oarsub -q abaca -l gpu=1,walltime=2:00 "bash oar/run_eval.sh full"
+
+# block mode, one GPU
+oarsub -q abaca -l gpu=1,walltime=2:00 "LOOP_MODE=block bash oar/run_eval.sh full"
 ```
 
 ## Files
 
-- `loop_eval.py`: evaluation script (from the original work).
+- `loop_eval.py`: evaluation script, adapted from the original work. Adds `--loop-mode {layer,block}`.
 - `collect.py`: turns logs into a result JSON.
+- `figures.py`: makes the SVG figures in `figures/`.
 - `oar/`: Grid'5000 scripts.
 - `RESULTS.md`: full numbers and notes.
 - `env/requirements.txt`: pinned packages.
