@@ -20,6 +20,10 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 | PIQA, validation (1,838) | 69.8 | 69.9 | 69.9 | +0.1 [−0.5, +0.7] |
 | HellaSwag, validation (10,042) | 53.8 | 53.6 | 54.3 | −0.2 [−0.5, +0.1] |
 
+![Damped Euler minus baseline](figures/delta.svg)
+
+![Accuracy by arm](figures/accuracy.svg)
+
 Run on one H100 (bf16). Details: [RESULTS.md](RESULTS.md). Raw data: [HF bucket](https://huggingface.co/buckets/NoeFlandre/arc-loops).
 
 - ARC-Easy gain reproduces.
