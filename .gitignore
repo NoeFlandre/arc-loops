@@ -3,3 +3,8 @@ env/*
 !env/requirements.txt
 __pycache__/
 hf-cache/
+.git-credentials
+.hf_token
+*.token
+refs/
+bucket/
