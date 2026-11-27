@@ -8,7 +8,7 @@ import json, math, sys
 from pathlib import Path
 
 TASKS = [("arc_easy", "ARC-Easy"), ("arc_challenge", "ARC-Challenge"),
-         ("arc_challenge_fresh", "ARC-Challenge fresh"), ("piqa", "PIQA"), ("hellaswag", "HellaSwag")]
+         ("piqa", "PIQA"), ("hellaswag", "HellaSwag")]
 INK, MUTED, GRID, ACCENT = "#222222", "#8a8a8a", "#dddddd", "#2b6cb0"
 FONT = "font-family:Helvetica,Arial,sans-serif"
 ROW, LEFT, RIGHT, WIDTH = 52, 190, 540, 660
