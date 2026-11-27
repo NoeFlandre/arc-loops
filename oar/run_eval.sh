@@ -12,10 +12,10 @@ LOCAL="/tmp/arc-run-${OAR_JOB_ID}"
 SHM="/dev/shm/arc-hf-${OAR_JOB_ID}"
 trap 'rm -rf "$LOCAL" "$SHM"' EXIT
 mkdir -p "$LOCAL" "$SHM"
-if command -v nvidia-smi >/dev/null 2>&1; then
-  nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader 2>/dev/null; then
+  :
 else
-  echo "no GPU on this node: CPU run (float32)"
+  echo "no usable GPU on this node: CPU run (float32)"
 fi
 zstd -dc "$ROOT/env/venv-$FP.tar.zst" | tar -x -C "$LOCAL"
 cp -r "$ROOT/hf-cache/." "$SHM/"
