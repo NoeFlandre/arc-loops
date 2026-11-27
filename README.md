@@ -17,6 +17,16 @@ The original README is kept unchanged below. The method and original results are
 - `collect.py`: checks each run log and writes the result JSON.
 - Results and data are stored in the HF bucket [NoeFlandre/arc-loops](https://huggingface.co/buckets/NoeFlandre/arc-loops), with the original upstream files under `upstream-eval/`.
 
+## Results
+
+See [RESULTS.md](RESULTS.md): ARC-Easy, ARC-Challenge, PIQA and HellaSwag on one H100 (bf16), compared with the original run. Short version: the ARC-Easy gain from damped Euler reproduces; the fresh ARC-Challenge gain does not; PIQA and HellaSwag show no clear change.
+
+## How it was run
+
+- Environment and dataset cache per site: `oar/env_build.sh` (CPU job).
+- GPU or CPU run: `oar/run_eval.sh <smoke|full> [k/N]` through OAR `-q abaca`.
+- Result JSON from logs: `collect.py` (merges shard logs, recomputes summaries).
+
 ---
 
 # Original README (from https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval)
