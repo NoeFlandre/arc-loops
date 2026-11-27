@@ -30,6 +30,8 @@ Same update, applied to layers 12–15 as one unit.
 | PIQA, validation (1838) | 69.80 / 69.80 | 69.91 / 69.59 | 70.46 / 69.64 | −0.22 [−0.87, +0.44] |
 | HellaSwag, validation (10042) | 40.96 / 53.79 | 40.47 / 53.08 | 41.25 / 53.74 | −0.72 [−1.01, −0.44] |
 
+Figures: ![Layer mode: change vs. baseline](figures/layer-delta.svg) ![Layer mode: accuracy](figures/layer-accuracy.svg) ![Block mode: change vs. baseline](figures/block-delta.svg) ![Block mode: accuracy](figures/block-accuracy.svg)
+
 ## Notes
 
 - **Reproduction check.** Per-question agreement with the original `results.json` (baseline / damped / heavy-ball), layer mode: ARC-Easy 98.1% / 97.5% / 97.9%; ARC-Challenge 97.3% / 97.4% / 97.5%. The small gaps come from the software and hardware stack (torch 2.6.0 on H100 vs. the original Docker image).

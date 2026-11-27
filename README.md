@@ -25,9 +25,9 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 | PIQA, validation (1,838) | 69.8 | 69.9 | 69.9 | +0.1 [−0.5, +0.7] |
 | HellaSwag, validation (10,042) | 53.8 | 53.6 | 54.3 | −0.2 [−0.5, +0.1] |
 
-![Damped Euler minus baseline](figures/delta.svg)
+![Layer mode: change vs. baseline](figures/layer-delta.svg)
 
-![Accuracy by arm](figures/accuracy.svg)
+![Layer mode: accuracy](figures/layer-accuracy.svg)
 
 ### Block mode
 
@@ -37,6 +37,10 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 | ARC-Challenge (1,172) | 38.6 | 37.9 | 38.0 | −0.7 [−1.9, +0.5] |
 | PIQA, validation (1,838) | 69.8 | 69.6 | 69.6 | −0.2 [−0.9, +0.4] |
 | HellaSwag, validation (10,042) | 53.8 | 53.1 | 53.7 | −0.7 [−1.0, −0.4] |
+
+![Block mode: change vs. baseline](figures/block-delta.svg)
+
+![Block mode: accuracy](figures/block-accuracy.svg)
 
 ### Takeaways
 
