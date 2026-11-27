@@ -28,13 +28,17 @@ def collect(logs, preset, script_hash):
         raise ValueError("The loop check did not pass")
 
     sizes = config["task_sizes"]
-    expected_sizes = {"arc_challenge": 256}
-    expected_summaries = set(expected_sizes)
+    full_sizes = {"arc_challenge": 1172, "arc_easy": 2376, "piqa": 1838, "hellaswag": 10042}
     if preset == "full":
-        expected_sizes = {"arc_challenge": 1172, "arc_easy": 2376}
-        expected_summaries = {*expected_sizes, "arc_challenge_fresh"}
-    if sizes != expected_sizes or rows_by_task.keys() != sizes.keys() or result["tasks"].keys() != expected_summaries:
-        raise ValueError("Required ARC tasks or sample sizes are missing")
+        if sizes != full_sizes:
+            raise ValueError("Required task sizes are missing")
+        expected_summaries = {*full_sizes, "arc_challenge_fresh"}
+    else:
+        if set(sizes) != set(full_sizes) or any(not 0 < n <= full_sizes[t] for t, n in sizes.items()):
+            raise ValueError("Smoke run must cover all four tasks")
+        expected_summaries = set(full_sizes)
+    if rows_by_task.keys() != sizes.keys() or result["tasks"].keys() != expected_summaries:
+        raise ValueError("Tasks missing from the log")
     if preset == "full" and result["tasks"]["arc_challenge_fresh"]["n"] != 916:
         raise ValueError("Expected 916 fresh ARC-Challenge questions")
 

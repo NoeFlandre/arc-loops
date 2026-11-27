@@ -29,9 +29,16 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 MODEL = "Qwen/Qwen3-0.6B-Base"
 MODEL_REVISION = "da87bfb608c14b7cf20ba1ce41287e8de496c0cd"
-DATASET_REVISION = "210d026faf9955653af8916fad021475a3f00453"
+# ARC: allenai/ai2_arc. PIQA: baber/piqa (parquet copy of ybisk/piqa). HellaSwag: Rowan/hellaswag.
+# PIQA and HellaSwag hide test labels, so their validation split is the evaluated test set.
+DATASET_REVISIONS = {
+    "arc_challenge": "210d026faf9955653af8916fad021475a3f00453",
+    "arc_easy": "210d026faf9955653af8916fad021475a3f00453",
+    "piqa": "142f6d7367fd9877f0fb3b5734ea6a545f54cdd1",
+    "hellaswag": "218ec52e09a7e7462a5400043bb9a69a41d06b76",
+}
 CHALLENGE = "arc_challenge"
-TEST_SIZES = {CHALLENGE: 1172, "arc_easy": 2376}
+TEST_SIZES = {CHALLENGE: 1172, "arc_easy": 2376, "piqa": 1838, "hellaswag": 10042}
 PILOT_SEED = 42
 PILOT_SIZE = 256
 LAYERS = (12, 13, 14, 15)
@@ -41,6 +48,10 @@ METRICS = ("acc", "acc_norm")
 
 def emit(label, data):
     print(f"{label} {json.dumps(data, separators=(',', ':'), allow_nan=False)}", flush=True)
+
+
+def doc_key(doc):
+    return doc.get("id", doc.get("ind"))
 
 
 def two_steps(forward, beta):
@@ -101,8 +112,8 @@ def evaluate_arm(model, tokenizer, task, manager, indices, beta, batch_size):
             torch.cuda.synchronize(model.device)
     seconds = time.perf_counter() - start
     samples = sorted(result["samples"][task_name], key=lambda sample: sample["doc_id"])
-    observed = [(sample["doc_id"], sample["doc"]["id"]) for sample in samples]
-    expected = [(index, task.eval_docs[index]["id"]) for index in indices]
+    observed = [(sample["doc_id"], doc_key(sample["doc"])) for sample in samples]
+    expected = [(index, doc_key(task.eval_docs[index])) for index in indices]
     if observed != expected:
         raise RuntimeError(f"The evaluated rows differed from the {task_name} test sample.")
     for metric in METRICS:
@@ -149,7 +160,7 @@ def score_task(model, tokenizer, task, manager, indices, batch_size):
                 raise RuntimeError(f"Arms used different {field} values for {task_name} row {first['doc_id']}.")
         rows.append({
             "index": first["doc_id"],
-            "id": first["doc"]["id"],
+            "id": doc_key(first["doc"]),
             **{arm: [int(row[metric]) for metric in METRICS] for arm, row in zip(ARMS, matched, strict=True)},
         })
     for start in range(0, len(rows), 16):
@@ -183,8 +194,8 @@ def main():
     args = parser.parse_args()
     if args.samples < 1 or args.batch_size < 1:
         parser.error("Sample count and batch size must be positive.")
-    if args.samples > TEST_SIZES[CHALLENGE]:
-        parser.error(f"ARC-Challenge has {TEST_SIZES[CHALLENGE]} test questions.")
+    if args.samples > min(TEST_SIZES.values()):
+        parser.error(f"Smoke samples must not exceed the smallest test set ({min(TEST_SIZES.values())}).")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
@@ -194,8 +205,8 @@ def main():
     full = args.preset == "full"
     tasks = {}
     indices = {}
-    for name in TEST_SIZES if full else (CHALLENGE,):
-        task = manager.load_config({"task": name, "dataset_kwargs": {"revision": DATASET_REVISION}})[name]
+    for name in TEST_SIZES:
+        task = manager.load_config({"task": name, "dataset_kwargs": {"revision": DATASET_REVISIONS[name]}})[name]
         if len(task.eval_docs) != TEST_SIZES[name]:
             raise RuntimeError(f"Unexpected test split size for {name}.")
         tasks[name] = task
@@ -206,8 +217,7 @@ def main():
         "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "model": MODEL,
         "model_revision": MODEL_REVISION,
-        "dataset": "allenai/ai2_arc",
-        "dataset_revision": DATASET_REVISION,
+        "dataset_revisions": DATASET_REVISIONS,
         "preset": args.preset,
         "task_sizes": {name: len(items) for name, items in indices.items()},
         "split": "test",

@@ -8,7 +8,7 @@ WORK="/tmp/arc-env-${OAR_JOB_ID}"
 trap 'rm -rf "$WORK" "$UV_CACHE_DIR"' EXIT
 MODEL=Qwen/Qwen3-0.6B-Base; MODEL_REV=da87bfb608c14b7cf20ba1ce41287e8de496c0cd
 DATA=allenai/ai2_arc; DATA_REV=210d026faf9955653af8916fad021475a3f00453
-FP=$( (cat "$ROOT/env/requirements.txt"; echo "$MODEL@$MODEL_REV"; echo "$DATA@$DATA_REV") | sha256sum | cut -c1-16)
+FP=$( (cat "$ROOT/env/requirements.txt"; echo "$MODEL@$MODEL_REV"; echo "$DATA@$DATA_REV"; echo "baber/piqa@142f6d7367fd9877f0fb3b5734ea6a545f54cdd1"; echo "Rowan/hellaswag@218ec52e09a7e7462a5400043bb9a69a41d06b76") | sha256sum | cut -c1-16)
 READY="$ROOT/env/READY-$FP"
 echo "fingerprint $FP; /tmp free: $(df -h /tmp | tail -1)"
 if [ -f "$READY" ]; then echo "environment already ready"; exit 0; fi
@@ -23,7 +23,9 @@ from datasets import load_dataset
 snapshot_download("Qwen/Qwen3-0.6B-Base", revision="da87bfb608c14b7cf20ba1ce41287e8de496c0cd")
 for cfg in ("ARC-Easy", "ARC-Challenge"):
     load_dataset("allenai/ai2_arc", cfg, revision="210d026faf9955653af8916fad021475a3f00453")
-print("cached model and ARC")
+load_dataset("baber/piqa", revision="142f6d7367fd9877f0fb3b5734ea6a545f54cdd1")
+load_dataset("Rowan/hellaswag", revision="218ec52e09a7e7462a5400043bb9a69a41d06b76")
+print("cached model, ARC, PIQA, HellaSwag")
 PY
 tar -C "$WORK" -cf - venv | zstd -T0 -3 -q -f -o "$ROOT/env/venv-$FP.tar.zst"
 find "$ROOT/env" -maxdepth 1 -name 'venv-*.tar.zst' ! -name "venv-$FP.tar.zst" -delete
