@@ -1,5 +1,7 @@
 # arc-loops
 
+![Does looping without retraining work? 28 layers, purple layers 12–15 run twice, then four answer scores](figures/hero.svg)
+
 Looping a few middle layers of a small language model (Qwen3-0.6B-Base), tested on four multiple-choice benchmarks.
 
 **Original work:** [burtenshaw](https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval). This repo reruns it on Grid'5000 and adds PIQA and HellaSwag.
