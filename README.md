@@ -6,7 +6,7 @@ Looping a few middle layers of a small language model (Qwen3-0.6B-Base), tested 
 
 ## Idea
 
-Four middle layers are run twice with a damped update. No training. This adds 4 layer calls per forward pass (28 → 32).
+Four middle layers are run twice with a damped update. No training. This adds 4 layer calls per forward pass (28 → 32). Two modes: `layer` (each layer looped) and `block` (the four layers looped as one unit).
 
 ## Results
 
@@ -23,7 +23,16 @@ Accuracy in %, length-normalized (acc_norm). Last column: damped Euler minus bas
 
 ![Accuracy by arm](figures/accuracy.svg)
 
-Run on one H100 (bf16). Details: [RESULTS.md](RESULTS.md). Raw data: [HF bucket](https://huggingface.co/buckets/NoeFlandre/arc-loops).
+**Block mode** (layers 12–15 run as one unit):
+
+| Benchmark (questions) | Baseline | Damped Euler | Heavy-ball | Damped − baseline |
+|---|---|---|---|---|
+| ARC-Easy (2,376) | 57.9 | 60.9 | 59.7 | +3.1 [+2.2, +4.0] |
+| ARC-Challenge (1,172) | 38.6 | 37.9 | 38.0 | −0.7 [−1.9, +0.5] |
+| PIQA, validation (1,838) | 69.8 | 69.6 | 69.6 | −0.2 [−0.9, +0.4] |
+| HellaSwag, validation (10,042) | 53.8 | 53.1 | 53.7 | −0.7 [−1.0, −0.4] |
+
+Layer mode, run on one H100 (bf16). Details: [RESULTS.md](RESULTS.md). Raw data: [HF bucket](https://huggingface.co/buckets/NoeFlandre/arc-loops).
 
 - ARC-Easy gain reproduces.
 - PIQA and HellaSwag show no clear change.

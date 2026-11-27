@@ -15,6 +15,17 @@ Cells are accuracy in % as `raw acc / length-normalized acc` (acc_norm). The las
 
 Original run, for reference (raw / acc_norm, baseline → damped → heavy-ball): ARC-Easy 65.49/58.00 → 67.26/61.15 → 65.57/58.12; ARC-Challenge 33.28/38.40 → 34.90/39.16 → 34.30/37.97.
 
+## Block mode
+
+Same update, applied to layers 12–15 as one unit. Run: H100 (bf16), job 3427806, full sets.
+
+| Benchmark (questions) | Baseline | Damped Euler | Heavy-ball | Damped − baseline |
+|---|---|---|---|---|
+| ARC-Easy (2,376) | 57.9 | 60.9 | 59.7 | +3.1 [+2.2, +4.0] |
+| ARC-Challenge (1,172) | 38.6 | 37.9 | 38.0 | −0.7 [−1.9, +0.5] |
+| PIQA, validation (1,838) | 69.8 | 69.6 | 69.6 | −0.2 [−0.9, +0.4] |
+| HellaSwag, validation (10,042) | 53.8 | 53.1 | 53.7 | −0.7 [−1.0, −0.4] |
+
 ## Notes
 
 - **Reproduction check.** Per-question agreement with the original `results.json` (baseline / damped / heavy-ball): ARC-Easy 98.1% / 97.5% / 97.9%; ARC-Challenge 97.3% / 97.4% / 97.5%. The small gaps come from the software and hardware stack (torch 2.6.0 on H100 vs. the original Docker image).
