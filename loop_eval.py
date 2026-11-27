@@ -8,6 +8,8 @@
 #     "lm-eval==0.4.11",
 # ]
 # ///
+# Original code: burtenshaw, https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval
+# Reproduction/extension on Grid'5000 abaca: PIQA and HellaSwag added, see README.md.
 """Evaluate cache-free layer looping on pinned ARC test sets."""
 
 import argparse
@@ -52,6 +54,11 @@ def emit(label, data):
 
 def doc_key(doc):
     return doc.get("id", doc.get("ind"))
+
+
+def shard_of(items, k, n):
+    size = -(-len(items) // n)
+    return items[k * size:(k + 1) * size]
 
 
 def two_steps(forward, beta):
@@ -191,7 +198,11 @@ def main():
     parser.add_argument("--samples", type=int, default=PILOT_SIZE, help="Questions in the smoke preset.")
     parser.add_argument("--seed", type=int, default=PILOT_SEED, help="Sampling seed for the smoke preset.")
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--shard", default="0/1", help="k/N: score only the k-th of N contiguous shards of each test set.")
     args = parser.parse_args()
+    shard_k, shard_n = (int(part) for part in args.shard.split("/"))
+    if not 0 <= shard_k < shard_n:
+        parser.error("--shard must be k/N with 0 <= k < N")
     if args.samples < 1 or args.batch_size < 1:
         parser.error("Sample count and batch size must be positive.")
     if args.samples > min(TEST_SIZES.values()):
@@ -219,6 +230,7 @@ def main():
         "model_revision": MODEL_REVISION,
         "dataset_revisions": DATASET_REVISIONS,
         "preset": args.preset,
+        "shard": [shard_k, shard_n],
         "task_sizes": {name: len(items) for name, items in indices.items()},
         "split": "test",
         "fewshot": 0,
@@ -244,7 +256,8 @@ def main():
     summaries = {}
     pilot = set(pilot_indices)
     for name, task in tasks.items():
-        rows, times = score_task(model, tokenizer, task, manager, indices[name], args.batch_size)
+        run_indices = shard_of(indices[name], shard_k, shard_n)
+        rows, times = score_task(model, tokenizer, task, manager, run_indices, args.batch_size)
         summaries[name] = summarize(rows, times)
         emit("TASK_RESULT", {"task": name, **summaries[name]})
         if full and name == CHALLENGE:

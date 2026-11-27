@@ -1,3 +1,26 @@
+# arc-loops
+
+Reproduction and extension of the ARC layer-looping evaluation on Qwen3-0.6B-Base, run on Grid'5000 (abaca).
+
+## Source and credit
+
+The original experiment is by **burtenshaw**. The evaluation scripts (`loop_eval.py`, `run_arc.sh`), this README, and the original results (`results.json`) come from:
+
+https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval
+
+The original README is kept unchanged below. The method and original results are burtenshaw's work.
+
+## What this repo adds
+
+- `oar/`: scripts to run the eval on Grid'5000 abaca through OAR (environment build, GPU/CPU run).
+- PIQA (`baber/piqa`, revision `142f6d7`, validation split) and HellaSwag (`Rowan/hellaswag`, revision `218ec52`, validation split). These were **not** in the original run.
+- `collect.py`: checks each run log and writes the result JSON.
+- Results and data are stored in the HF bucket [NoeFlandre/arc-loops](https://huggingface.co/buckets/NoeFlandre/arc-loops), with the original upstream files under `upstream-eval/`.
+
+---
+
+# Original README (from https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval)
+
 # Four extra layer calls on Qwen3-0.6B-Base
 
 We tried a small inference-time change on a frozen language model. On ARC-Easy, running four middle layers twice with damped updates lifted length-normalized accuracy from **58.00% to 61.15%**. The two ARC test sets contain 3,548 questions in total, and the bundle includes each question's outcome under all three settings.

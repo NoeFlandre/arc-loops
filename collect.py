@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Turn one loop_eval.py log into a validated result JSON (same checks as the upstream run_arc.sh)."""
+"""Turn one loop_eval.py log into a validated result JSON (same checks as the upstream run_arc.sh).
+
+Log format and checks follow the original work by burtenshaw: https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval
+"""
 import argparse, hashlib, json, socket
 from pathlib import Path
 
@@ -72,7 +75,7 @@ def main():
     script_hash = hashlib.sha256((root / "loop_eval.py").read_bytes()).hexdigest()
     result = collect(Path(args.log).read_text(encoding="utf-8"), args.preset, script_hash)
     out = Path(args.out_dir) / f"arc-{args.preset}-{args.job}.json"
-    out.write_text(json.dumps({"job": {"oar_job": args.job, "host": socket.gethostname()}, **result}, indent=2) + "\n", encoding="utf-8")
+    out.write_text(json.dumps({"source": "https://huggingface.co/buckets/burtenshaw/qwen-arc-loop/tree/eval", "job": {"oar_job": args.job, "host": socket.gethostname()}, **result}, indent=2) + "\n", encoding="utf-8")
     print(f"Saved {out}")
 
 
